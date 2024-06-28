@@ -9,15 +9,31 @@ This launches a Sinatra server that responds at:
 * http://127.0.0.1:4567
 * http://127.0.0.1:4567/api
 
-[source,sh]
-----
-bundle install
-bundle exec ruby app.rb
-----
+== Prequisites
 
-Command for tebako:
+For all Tebako steps, please first run in a pristine environment:
 
 [source,sh]
 ----
-tebako press -e app.rb -o sample.tebako -r ./
+$ tebako clean
+$ tebako setup
+----
+
+== Sinatra
+
+Running without Tebako:
+
+[source,sh]
+----
+$ cd sinatra
+$ bundle install
+$ bundle exec ruby app.rb
+----
+
+Packaging with Tebako:
+
+[source,sh]
+----
+$ cd sinatra
+$ tebako press -e app.rb -o sample.teb -r ./
 ----
