@@ -1,0 +1,16 @@
+= Tebako sample applications
+
+This repository provides sample applications to demonstrate usage of Tebako.
+
+Right now there is only one sample.
+
+This launches a Sinatra server that responds at:
+
+* http://127.0.0.1:4567
+* http://127.0.0.1:4567/api
+
+[source,sh]
+----
+bundle install
+bundle exec ruby app.rb
+----
