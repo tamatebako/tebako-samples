@@ -34,10 +34,6 @@ Packaging with Tebako:
 
 [source,sh]
 ----
-<<<<<<< HEAD
-$ cd sinatra
-$ tebako press -e app.rb -o sample.teb -r ./
-=======
 tebako press -e app.rb -o sample.tebako -r sinatra
 ----
 
@@ -45,7 +41,5 @@ Note: please do not package "in-place" like
 [source,sh]
 ----
 tebako press -e app.rb -o sample.tebako -r ./
->>>>>>> b47c962... Moved the application to subfolder
 ----
-
 Tebako includes all files starting from the root folder into package and packaging "in-place" will force endless recursive inclusion of the package into itself.
