@@ -14,3 +14,10 @@ This launches a Sinatra server that responds at:
 bundle install
 bundle exec ruby app.rb
 ----
+
+Command for tebako:
+
+[source,sh]
+----
+tebako press -e app.rb -o sample.tebako -r ./
+----
