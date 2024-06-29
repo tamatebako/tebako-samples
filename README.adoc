@@ -11,13 +11,7 @@ This launches a Sinatra server that responds at:
 
 == Prequisites
 
-For all Tebako steps, please first run in a pristine environment:
-
-[source,sh]
-----
-$ tebako clean
-$ tebako setup
-----
+Before using Tebako, please first setup prerequisites as described in tebako README https://github.com/tamatebako/tebako
 
 == Sinatra
 
