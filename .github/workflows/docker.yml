@@ -32,3 +32,27 @@ jobs:
 
     - name: Look around
       run: ls -la
+
+    - name: Start packaged Sinatra application
+      run: ./sinatra.teb &
+      env:
+        PORT: 4567
+
+    - name: Wait for Sinatra to start
+      run: sleep 10
+
+    - name: Install curl/procps
+      run: |
+        if  [ -e "/etc/lsb-release" ]; then
+          apt-get -y update
+          apt-get -y install curl procps
+        elif [ -e "/etc/alpine-release" ]; then
+          apk --no-cache --upgrade add curl procps
+        fi
+
+    - name: Place GET request
+      run: |
+        curl http://localhost:4567
+
+    - name: End Sinatra application
+      run: pkill -f sinatra.teb

@@ -35,3 +35,17 @@ jobs:
 
     - name: Look around
       run: ls -la
+
+    - name: Start packaged Sinatra application
+      run: ./sample.tebako &
+      env:
+        PORT: 4567
+
+    - name: Wait for Sinatra to start
+      run: sleep 10
+
+    - name: Place GET request
+      run: curl http://localhost:4567
+
+    - name: End Sinatra application
+      run: pkill -f sample.tebako
