@@ -1,0 +1,106 @@
+# Copyright (c) 2024 [Ribose Inc](https://www.ribose.com).
+# All rights reserved.
+# This file is a part of tamatebako
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
+# BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+name: RHEL
+
+on:
+  push:
+    branches:  [ main ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: '${{ github.workflow }}-${{ github.job }}-${{ github.head_ref || github.ref_name }}'
+  cancel-in-progress: true
+
+jobs:
+  create-package:
+    name: Create tebako package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sample
+        uses: actions/checkout@v4
+
+      - name: Create tebako package
+        run: |
+          docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
+                         tebako press --root=/mnt/w/sinatra --entry-point=app.rb     \
+                         --output=/mnt/w/sinatra-package --Ruby=3.2.5 --patchelf
+
+      - name: Upload tebako test packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: sinatra-package
+          retention-days: 1
+          path: |
+            sinatra-package
+
+  run-package:
+    name: Run on ${{ matrix.container }}
+    runs-on: ubuntu-latest
+    needs: [ create-package ]
+    strategy:
+      fail-fast: false
+      matrix:
+        container:
+          - 'rockylinux:9'
+          - 'fedora:39'
+          - 'quay.io/centos/centos:stream9'
+    container:
+      image: ${{ matrix.container }}
+    steps:
+      - name: Download test packages
+        uses: actions/download-artifact@v4
+        with:
+          name: sinatra-package
+
+      - name: Install OpenSSL 1.1
+        run: |
+          dnf -y install procps-ng
+          if [ "${{matrix.container}}" = "rockylinux:9" -o "${{matrix.container}}" = "quay.io/centos/centos:stream9" ] ; then
+            dnf -y install compat-openssl11
+          elif [ "${{matrix.container}}" = "fedora:39" ] ; then
+            dnf -y install openssl1.1
+          fi
+
+      - name: Adjust package permissions
+        run:  chmod +x sinatra-package
+
+      - name: Smoke check
+        run:  ./sinatra-package -h
+
+      - name: Start packaged Sinatra application
+        run: ./sinatra-package &
+        env:
+          PORT: 4567
+
+      - name: Wait for Sinatra to start
+        run: sleep 10
+
+      - name: Place GET request
+        run: curl http://localhost:4567
+
+      - name: End Sinatra application
+        run: pkill -f sinatra-package
