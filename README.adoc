@@ -39,7 +39,7 @@ Please do not package "in-place" like:
 
 [source,sh]
 ----
-tebako press -e app.rb -o sample.tebako -r ./
+tebako press -e app.rb -o sinatra.tebako -r ./
 ----
 
 Tebako includes all files starting from the root folder into package and
@@ -48,7 +48,7 @@ itself.
 ====
 
 
-=== Packaging for Ubuntu 20, Alpine Linux
+=== Packaging for Ubuntu, Alpine Linux
 
 Packaging for Ubuntu and Alpine Linux employs https://github.com/tamatebako/tebako-ci-containers[Tebako Docker containers] available through ghrc.io.
 
@@ -65,40 +65,15 @@ Packaging from outside the container for Ubuntu:
 
 [source,sh]
 ----
-$ docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
+docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
   tebako press --root=/mnt/w/sinatra --entry-point=app.rb \
-  --output=/mnt/w/sinatra-package --Ruby=3.2.5
-----
-
-Packaging from outside the container for Alpine:
-
-[source,sh]
-----
-$ docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-alpine-3.17:latest \
-  tebako press --root=/mnt/w/sinatra --entry-point=app.rb \
-  --output=/mnt/w/sinatra-package --Ruby=3.2.5
-----
-
-
-=== Packaging for glibc-based Linux distributions using the Ubuntu container
-
-This sample shows how to create portable tebako package for GNU Linux
-distributions, such as Red Hat Enterprise Linux, CentOS, Fedora, Rocky Linux,
-etc.
-
-Packaging from outside the container for Ubuntu:
-
-[source,sh]
-----
-$ docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
-  tebako press --root=/mnt/w/sinatra --entry-point=app.rb \
-  --output=/mnt/w/sinatra-package --Ruby=3.2.5 --patchelf
+  --output=/mnt/w/sinatra.tebako --Ruby=3.2.5 --patchelf
 ----
 
 This command:
 
 * mounts current directory to `/mnt/w`
-* packages the application in `/mnt/w/sinatra-package`
+* packages the application in `/mnt/w/sinatra.tebako`
 * applies the experimental `--patchelf` option to make it portable across
 different versions of GLIBC.
 
@@ -107,14 +82,133 @@ information.
 
 Support for glibc forward portable packages is subject to the following caveats:
 
-* The `--patchelf` option is currently experimental
-
-* The `--patchelf` option is only available for the GNU toolchain, not yet for
-clang/llvm.
-
 * The package is built against the installed OpenSSL version on the system (e.g.
 1.1.1), which needs to be present at the target system. If the target system has
 a different version of OpenSSL, the package will not work.
+
+
+Packaging from outside the container for Alpine:
+
+[source,sh]
+----
+docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-alpine-3.17:latest \
+  tebako press --root=/mnt/w/sinatra --entry-point=app.rb \
+  --output=/mnt/w/sinatra.tebako --Ruby=3.2.5
+----
+
+=== Packaging for glibc-based Linux distributions using the Ubuntu container
+
+This sample shows how to create portable tebako package for GNU Linux
+distributions, such as Red Hat Enterprise Linux, CentOS, Fedora, Rocky Linux,
+etc.
+
+== Ruby on Rails
+
+Command that was used to generate sample application:
+[source,sh]
+----
+rails new ror --skip-bundle  --skip-docker --skip-action-mailer --skip-action-mailbox --skip-action-text --skip-active-storage \
+              --skip-action-cable --skip-bootsnap --skip-dev-gems --skip-coffee --skip-sprockets --skip-spring --skip-test
+----
+
+Database configuration at `database.yml` changed to be more flexible:
+[source,yaml]
+----
+default: &default
+  adapter: sqlite3
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  timeout: 5000
+
+development:
+  <<: *default
+  database: <%= ENV.fetch("RAILS_STORAGE") { "storage/development.sqlite3" } %>
+test:
+  <<: *default
+  database: <%= ENV.fetch("RAILS_STORAGE") { "storage/test.sqlite3" } %>
+
+production:
+  <<: *default
+  database: <%= ENV.fetch("RAILS_STORAGE") { "storage/production.sqlite3" } %>
+----
+
+Running in standalone mode:
+
+[source,sh]
+----
+cd ror
+bundle install
+rails server
+----
+
+This launches a rails server that responds at:
+
+* http://127.0.0.1:3000
+
+=== Packaging for MacOS
+
+Install Tebako according to the
+https://github.com/tamatebako/tebako[Tebako README].
+
+Run this:
+
+[source,sh]
+----
+tebako press -e bin/rails -o rails.tebako -r ror
+----
+
+[WARNING]
+====
+Please do not package "in-place" like:
+
+[source,sh]
+----
+tebako press -e app.rb -o rails.tebako -r ./
+----
+
+Tebako includes all files starting from the root folder into package and
+packaging "in-place" will force endless recursive inclusion of the package into
+itself.
+====
+
+=== Packaging for Ubuntu, Alpine Linux
+
+Packaging for Ubuntu and Alpine Linux employs https://github.com/tamatebako/tebako-ci-containers[Tebako Docker containers] available through ghrc.io.
+
+There are no prerequisites for using these containers.
+
+For example, packaging from outside the container for Ubuntu:
+
+[source,sh]
+----
+docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
+  tebako press --root=/mnt/w/ror --entry-point=bin/rails \
+  --output=/mnt/w/rails.tebako --Ruby=3.2.5 --patchelf
+----
+
+Please refer to Sinatra sample comments above for more Tebako CI containers examples.
+
+=== Running Tebako-packaged Rails application
+
+There is no configuration option to change where Rails expects the tmp folder to be.
+The location is hardcoded in multiple places within the Rails codebase, residing under the
+application root, and as a result, it gets included in the read-only Tebako memfs. Although
+patches have been proposed (e.g., https://github.com/rails/rails#39583), there is currently
+no way to change the paths for temporary files, caches, and sockets.
+
+To address this limitation in Rails, Tebako provides --tebako-mount option to mount a host folder
+to the memfs tree.
+
+For our example we create `ror-data` folder where temporary files and logs will be placed.
+
+[source,sh]
+----
+mkdir -p $PWD/ror-data
+./rails.tebako server --port=4567  --tebako-mount local/tmp:$PWD/ror-data/tmp \
+--tebako-mount local/log:$PWD/ror-data/log
+----
+
+Please refer to https://github.com/tamatebako/tebako[tebako README] for more
+information re Tebako runtime options.
 
 == License
 

@@ -4,7 +4,7 @@ require "sinatra"
 require "httparty"
 
 get "/" do
-  "Welcome to the Tebako App!"
+  "Welcome to the Tebako Sinatra App!"
 end
 
 get "/api" do

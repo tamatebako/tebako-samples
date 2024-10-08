@@ -36,8 +36,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  create-package:
-    name: Create tebako package
+  create-sinatra-package:
+    name: Create Sinatra package
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sample
@@ -47,20 +47,20 @@ jobs:
         run: |
           docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
                          tebako press --root=/mnt/w/sinatra --entry-point=app.rb     \
-                         --output=/mnt/w/sinatra-package --Ruby=3.2.5 --patchelf
+                         --output=/mnt/w/sinatra.tebako --Ruby=3.2.5 --patchelf
 
       - name: Upload tebako test packages
         uses: actions/upload-artifact@v4
         with:
-          name: sinatra-package
+          name: sinatra.tebako
           retention-days: 1
           path: |
-            sinatra-package
+            sinatra.tebako
 
-  run-package:
-    name: Run on ${{ matrix.container }}
+  test-sinatra:
+    name: Run Sinatra package on ${{ matrix.container }}
     runs-on: ubuntu-latest
-    needs: [ create-package ]
+    needs: [ create-sinatra-package ]
     strategy:
       fail-fast: false
       matrix:
@@ -74,7 +74,7 @@ jobs:
       - name: Download test packages
         uses: actions/download-artifact@v4
         with:
-          name: sinatra-package
+          name: sinatra.tebako
 
       - name: Install OpenSSL 1.1
         run: |
@@ -86,13 +86,13 @@ jobs:
           fi
 
       - name: Adjust package permissions
-        run:  chmod +x sinatra-package
+        run:  chmod +x sinatra.tebako
 
       - name: Smoke check
-        run:  ./sinatra-package -h
+        run:  ./sinatra.tebako -h
 
       - name: Start packaged Sinatra application
-        run: ./sinatra-package &
+        run: ./sinatra.tebako &
         env:
           PORT: 4567
 
@@ -103,4 +103,74 @@ jobs:
         run: curl http://localhost:4567
 
       - name: End Sinatra application
-        run: pkill -f sinatra-package
+        run: pkill -f sinatra.tebako
+
+  create-rails-package:
+    name: Create Rails package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sample
+        uses: actions/checkout@v4
+
+      - name: Create tebako package
+        run: |
+          docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
+                         tebako press --root=/mnt/w/ror --entry-point=bin/rails     \
+                         --output=/mnt/w/rails.tebako --Ruby=3.2.5 --patchelf
+
+      - name: Upload tebako test packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: rails.tebako
+          retention-days: 1
+          path: |
+            rails.tebako
+
+  test-rails:
+    name: Run Rails package on ${{ matrix.container }}
+    runs-on: ubuntu-latest
+    needs: [ create-rails-package ]
+    strategy:
+      fail-fast: false
+      matrix:
+        container:
+          - 'rockylinux:9'
+          - 'fedora:39'
+          - 'quay.io/centos/centos:stream9'
+    container:
+      image: ${{ matrix.container }}
+    steps:
+      - name: Download test packages
+        uses: actions/download-artifact@v4
+        with:
+          name: rails.tebako
+
+      - name: Install OpenSSL 1.1
+        run: |
+          dnf -y install procps-ng
+          if [ "${{matrix.container}}" = "rockylinux:9" -o "${{matrix.container}}" = "quay.io/centos/centos:stream9" ] ; then
+            dnf -y install compat-openssl11
+          elif [ "${{matrix.container}}" = "fedora:39" ] ; then
+            dnf -y install openssl1.1
+          fi
+
+      - name: Adjust package permissions
+        run:  chmod +x rails.tebako
+
+      - name: Create data folder
+        run: mkdir -p ror-data
+
+      - name: Smoke check
+        run:  ./rails.tebako server --help
+
+      - name: Start packaged Rails application
+        run: ./rails.tebako server --port=4567  --tebako-mount local/tmp:$PWD/ror-data/tmp --tebako-mount local/log:$PWD/ror-data/log &
+
+      - name: Wait for Rails to start
+        run: sleep 10
+
+      - name: Place GET request
+        run: curl http://localhost:4567
+
+      - name: End Sinatra application
+        run: pkill -f rails.tebako

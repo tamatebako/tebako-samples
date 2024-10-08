@@ -1,2 +1,46 @@
-sample.tebako
+sinatra.teb
+ror.teb
+rails.teb
 .vscode/
+
+# Ignore all logfiles and tempfiles.
+ror/log/*
+ror/tmp/*
+!ror/log/.keep
+!ror/tmp/.keep
+
+# Ignore pidfiles, but keep the directory.
+ror/tmp/pids/*
+!ror/tmp/pids/
+!ror/tmp/pids/.keep
+
+# Ignore storage (uploaded files in development and any SQLite databases).
+ror/storage/*
+!ror/storage/.keep
+ror/tmp/storage/*
+!ror/tmp/storage/
+!ror/tmp/storage/.keep
+
+#ror/public/assets
+
+# Ignore master key for decrypting credentials and more.
+# ror/config/master.key
+
+
+# Ignore all logfiles and tempfiles.
+ror/log/*
+ror/tmp/*
+!ror/log/.keep
+!ror/tmp/.keep
+
+# Ignore pidfiles, but keep the directory.
+ror/tmp/pids/*
+!ror/tmp/pids/
+!ror/tmp/pids/.keep
+
+# Ignore storage (uploaded files in development and any SQLite databases).
+ror-data/*
+!ror-data/storage/.keep
+
+Gemfile.lock
+log
