@@ -11,6 +11,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test-async:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        container:
+          - 'ubuntu-20.04'
+          - 'alpine-3.17'
+        package_ruby_ver:
+          - '3.2.5'
+    container:
+      image: ghcr.io/tamatebako/tebako-${{ matrix.container }}:latest
+    steps:
+    - name: Install curl/procps
+      run: |
+        if  [ -e "/etc/lsb-release" ]; then
+          apt-get -y update
+          apt-get -y install curl procps
+        elif [ -e "/etc/alpine-release" ]; then
+          apk --no-cache --upgrade add curl procps
+        fi
+
+    - name: Checkout sample
+      uses: actions/checkout@v4
+
+    - name: Package
+      run: tebako press -e binance.rb -o binance.tebako -r async -R ${{ matrix.package_ruby_ver }}
+
+    - name: Start packaged application
+      run: ./binance.tebako &
+
+    - name: Wait for the application to start and do some work
+      run: sleep 10
+
+    - name: End application
+      run: pkill -f binance.tebako
+
   test-sinatra:
     runs-on: ubuntu-latest
     strategy:
