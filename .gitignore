@@ -44,3 +44,7 @@ ror-data/*
 
 Gemfile.lock
 log
+
+# Tutorila
+hello_world
+source_filesystem/

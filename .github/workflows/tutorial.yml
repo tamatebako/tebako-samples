@@ -1,0 +1,47 @@
+name: Tutorial
+
+on:
+  push:
+    branches:  [ main ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: '${{ github.workflow }}-${{ github.job }}-${{ github.head_ref || github.ref_name }}'
+  cancel-in-progress: true
+
+jobs:
+  lesson-1:
+    runs-on: macos-latest
+    steps:
+
+    - name: Brew install
+      run: |
+        pushd $(mktemp -d)
+        curl https://raw.githubusercontent.com/tamatebako/tebako/refs/heads/main/Brewfile > Brewfile
+        brew bundle -f
+        popd
+        echo "$(brew --prefix bison)/bin" >> $GITHUB_PATH
+
+    - name: Install gem
+      run: gem install tebako
+
+    - name: Checkout sample
+      uses: actions/checkout@v4
+
+    - name: Package
+      run: |
+        tebako press --root=tutorial/1_hello_world/sample --entry=hello_world.rb
+
+    - name: Run packaged application
+      run: |
+        ./hello_world
+        otool -L hello_world
+
+    - name: Package with a difefrent name
+      run: |
+        tebako press --root=tutorial/1_hello_world/sample --entry=hello_world.rb --output=lesson-1
+
+    - name: Run packaged application with a diffeernt name
+      run: |
+        ./lesson-1
