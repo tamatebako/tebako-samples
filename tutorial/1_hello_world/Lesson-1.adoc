@@ -1,0 +1,114 @@
+= Tebako tutorial - Lesson 1. "Hello, World!" with Tebako
+
+== Foreword
+
+Tebako is an advanced executable packager designed for applications written in interpretive languages.
+
+It simplifies distribution and deployment by packaging your entire project with a bundled runtime into a single, performant, executable binary.
+
+A Tebako package is effectively a self-executing container-in-a-file.
+
+The package contains the following components:
+
+* An on-file filesystem (OFFS) containing all the project files and dependencies in DwarFS format ("application")
+* A runtime environment that includes the necessary libraries and interpreters, with patched filesystem calls that redirect access to project files in the on-file filesystem ("runtime")
+
+== Environment
+
+Tebako is compatible with macOS, Linux, and Windows.
+
+The first lessons of this tutorial use a macOS environment. This is an arbitrary choice with no special reason. Other operating systems differ only in how to install Tebako prerequisites, which we will discuss later.
+
+== Setup
+
+Tebako itself is a Ruby gem and can be easily installed with `gem` or `bundler`.
+
+However, creating embedded packages requires a complex configuration of additional tools and libraries. On macOS, the setup is broken into two steps:
+
+1. Install Homebrew prerequisites. Note that this example uses a `Brewfile` available from the Tebako repository.
+
+[source,sh]
+----
+    pushd $(mktemp -d)
+    curl https://raw.githubusercontent.com/tamatebako/tebako/refs/heads/main/Brewfile > Brewfile
+    brew bundle -f
+    popd
+
+    echo 'export PATH=$(brew --prefix bison)/bin:$PATH' >> ~/.zshrc
+    source ~/.zshrc
+----
+
+2. Install the Tebako gem:
+
+[source,sh]
+----
+gem install tebako
+----
+
+== Hello, World!
+
+Let's create a simple "Hello, World!" application in Ruby and package it with Tebako.
+We place the following code into `sample/hello_world.rb`:
+
+[source,Ruby]
+----
+puts "Hello, World!"
+----
+
+Now we can package it with Tebako:
+
+[source,sh]
+----
+tebako press --root=sample --entry=hello_world.rb
+----
+
+This command uses two mandatory parameters: `--root` and `--entry`.
+The first specifies the root directory of the project. Tebako packages all files in this directory and its subdirectories.
+The root may be specified either as a relative path or as an absolute path.
+The second specifies the entry point of the application. It can be a relative path to the root directory or an absolute path.
+
+The command creates an executable file `hello_world` that contains the runtime, the Ruby library files, and the application.
+The application will be placed in the folder of the on-file filesystem named `local`.
+
+We can now run the application:
+
+[source,sh]
+----
+./hello_world
+----
+
+and check that it does not have any dependencies other than the macOS runtime:
+
+[source,sh]
+----
+otool -L hello_world
+----
+
+== Caveats
+
+Note that we are not packaging in-place. We do not recommend packaging the project in the project directory for a simple reason.
+If we do something like this:
+
+[source,sh]
+----
+tebako press --root=$PWD --entry=hello_world.rb
+----
+
+then on the second run, the package will contain the package itself. This is not an error and can be done, but it does not seem like a valid action.
+To avoid this, we recommend always creating the Tebako package outside of the project directory.
+
+== Changing package name
+
+We can use `--output` to specify the name of the package:
+
+[source,sh]
+----
+tebako press --root=sample --entry=hello_world.rb --output=lesson-1
+----
+
+This command creates an executable file `lesson-1` that contains the runtime, the Ruby library files, and the application.
+
+== Live example
+
+You can find the complete code of this lesson in the `tutorial/1_hello_world` directory of the tebako-samples repository.
+The code is running on GHA via the `tutorial.yml` workflow.
