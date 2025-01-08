@@ -58,7 +58,7 @@ Packaging from inside the container:
 
 [source,sh]
 ----
-tebako press -e app.rb -o sinatra.teb -r sinatra -R 3.2.5
+tebako press -e app.rb -o sinatra.teb -r sinatra -R 3.2.6
 ----
 
 Packaging from outside the container for Ubuntu:
@@ -67,7 +67,7 @@ Packaging from outside the container for Ubuntu:
 ----
 docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
   tebako press --root=/mnt/w/sinatra --entry-point=app.rb \
-  --output=/mnt/w/sinatra.tebako --Ruby=3.2.5 --patchelf
+  --output=/mnt/w/sinatra.tebako --Ruby=3.2.6 --patchelf
 ----
 
 This command:
@@ -93,7 +93,7 @@ Packaging from outside the container for Alpine:
 ----
 docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-alpine-3.17:latest \
   tebako press --root=/mnt/w/sinatra --entry-point=app.rb \
-  --output=/mnt/w/sinatra.tebako --Ruby=3.2.5
+  --output=/mnt/w/sinatra.tebako --Ruby=3.2.6
 ----
 
 === Packaging for glibc-based Linux distributions using the Ubuntu container
@@ -182,7 +182,7 @@ For example, packaging from outside the container for Ubuntu:
 ----
 docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
   tebako press --root=/mnt/w/ror --entry-point=bin/rails \
-  --output=/mnt/w/rails.tebako --Ruby=3.2.5 --patchelf
+  --output=/mnt/w/rails.tebako --Ruby=3.2.6 --patchelf
 ----
 
 Please refer to Sinatra sample comments above for more Tebako CI containers examples.
