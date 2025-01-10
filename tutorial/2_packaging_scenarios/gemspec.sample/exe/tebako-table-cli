@@ -1,0 +1,10 @@
+#!/home/tebako/bin/ruby
+# frozen_string_literal: true
+
+# Tebako tutorial: Lesson 2
+
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+require "tebako-table"
+
+instance = Test::TebakoTable.new
+instance.run

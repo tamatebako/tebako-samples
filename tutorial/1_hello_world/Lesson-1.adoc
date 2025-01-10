@@ -59,7 +59,7 @@ Now we can package it with Tebako:
 
 [source,sh]
 ----
-tebako press --root=sample --entry=hello_world.rb
+tebako press --root=hello_world.sample --entry=hello_world.rb
 ----
 
 This command uses two mandatory parameters: `--root` and `--entry`.
@@ -103,7 +103,7 @@ We can use `--output` to specify the name of the package:
 
 [source,sh]
 ----
-tebako press --root=sample --entry=hello_world.rb --output=lesson-1
+tebako press --root=hello_world.sample --entry=hello_world.rb --output=lesson-1
 ----
 
 This command creates an executable file `lesson-1` that contains the runtime, the Ruby library files, and the application.

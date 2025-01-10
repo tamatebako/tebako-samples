@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lesson-1:
+  lessons-1-2:
     runs-on: macos-latest
     steps:
 
@@ -26,22 +26,56 @@ jobs:
     - name: Install gem
       run: gem install tebako
 
-    - name: Checkout sample
+    - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Package
+    - name: Package 1_hello_world
       run: |
-        tebako press --root=tutorial/1_hello_world/sample --entry=hello_world.rb
+        tebako press --root=tutorial/1_hello_world/hello_world.sample --entry=hello_world.rb
 
-    - name: Run packaged application
+    - name: Run packaged 1_hello_world application
       run: |
         ./hello_world
         otool -L hello_world
 
-    - name: Package with a difefrent name
+    - name: Package 1_hello_world with a difefrent name
       run: |
-        tebako press --root=tutorial/1_hello_world/sample --entry=hello_world.rb --output=lesson-1
+        tebako press --root=tutorial/1_hello_world/hello_world.sample --entry=hello_world.rb --output=lesson-1
 
-    - name: Run packaged application with a diffeernt name
+    - name: Run packaged 1_hello_world application with a different name
       run: |
         ./lesson-1
+
+      # Cannot run this sample since GH Actions does not allow such websocket connection to the outside world
+
+    - name: Package 2_packaging_scenarios gemspec and gemfile sample
+      run: |
+        tebako press -r tutorial/2_packaging_scenarios/gemspec_and_gemfile.sample -e tebako-table-cli -o table.tebako
+
+    - name: Run packaged 2_packaging_scenarios gemspec and gemfile sample
+      run: |
+        ./table.tebako
+
+    - name: Package 2_packaging_scenarios gemfile sample
+      run: |
+        tebako press -r tutorial/2_packaging_scenarios/gemfile.sample -e ticker.rb -o ticker.tebako.
+
+    - name: Package 2_packaging_scenarios gemspec sample
+      run: |
+        tebako press -r tutorial/2_packaging_scenarios/gemspec.sample -e tebako-table-cli -o table.tebako
+
+    - name: Run packaged 2_packaging_scenarios gemspec sample
+      run: |
+        ./table.tebako
+
+    - name: Package 2_packaging_scenarios gem sample
+      run: |
+        mkdir -p tutorial/2_packaging_scenarios/gem.sample
+        pushd tutorial/2_packaging_scenarios/gemspec.sample
+        gem build tebako-table.gemspec -o ../gem.sample/tebako-test-0.0.2.gem
+        popd
+        tebako press -r tutorial/2_packaging_scenarios/gem.sample -e tebako-table-cli -o table.tebako
+
+    - name: Run packaged 2_packaging_scenarios gems sample
+      run: |
+        ./table.tebako

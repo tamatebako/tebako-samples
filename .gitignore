@@ -48,3 +48,5 @@ log
 # Tutorila
 hello_world
 source_filesystem/
+*.tebako
+gem.sample/

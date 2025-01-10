@@ -1,0 +1,253 @@
+= Tebako Tutorial - Lesson 2: "Packaging Scenarios"
+
+In Lesson 1, we packaged a simple script without dependencies. Now we will discuss more complex scenarios.
+In this lesson, we show how to use Tebako for different layouts of solutions to be packaged.
+
+== Packaging a Bundle
+
+Let's package a script that has external dependencies.
+
+[source,Ruby]
+----
+require "async"
+require "async/http"
+require "async/websocket"
+
+URL = "wss://stream.binance.com:9443/ws/btcusdt@bookTicker"
+
+Signal.trap("INT") do
+  puts "\n\nStopping..."
+  exit(0)
+end
+
+Async do |task|
+  endpoint = Async::HTTP::Endpoint.parse(URL, alpn_protocols: Async::HTTP::Protocol::HTTP11.names)
+
+  Async::WebSocket::Client.connect(endpoint) do |connection|
+    while message = connection.read
+      puts message.parse
+    end
+  end
+end
+----
+
+This script receives the BTC/USDT ticker from the Binance exchange and outputs it to the console.
+It uses the `async`, `async-http`, and `async-websocket` gems, so we add a Gemfile to manage dependencies:
+
+[source,Ruby]
+----
+source "https://rubygems.org"
+
+gem "async"
+gem "async-http"
+gem "async-websocket"
+----
+
+We put the script into the `gemfile.sample/ticker.rb` file and the Gemfile into the `gemfile.sample/Gemfile` file. We then package it with Tebako.
+Short aliases for the parameters are used:
+
+[source,sh]
+----
+tebako press -r gemfile.sample -e ticker.rb -o ticker.tebako
+----
+
+Note that we do not run `bundle install` before packaging. Tebako creates its own environment, isolated from the system where we package.
+It works similarly to rbenv. When packaging starts, the environment is initialized with Tebako-patched Ruby, and `bundle install` is executed by Tebako
+against this environment.
+
+You can see this sequence in the Tebako console log:
+
+[source]
+----
+-- Running init script
+   ... creating packaging environment at /Users/runner/.tebako/o/s
+-- Running deploy script
+   ... installing tebako-runtime gem
+   ... @ /Users/runner/.tebako/o/s/bin/gem install tebako-runtime --no-document --install-dir /Users/runner/.tebako/o/s/lib/ruby/gems/3.2.0
+   ... deploying Gemfile
+   ... @ /Users/runner/.tebako/o/s/bin/bundle config set --local build.ffi --disable-system-libffi
+   ... @ /Users/runner/.tebako/o/s/bin/bundle config set --local build.nokogiri --no-use-system-libraries
+   ... @ /Users/runner/.tebako/o/s/bin/bundle config set --local force_ruby_platform false
+   *** It may take a long time for a big project. It takes REALLY long time on Windows ***
+   ... @ /Users/runner/.tebako/o/s/bin/bundle install --jobs=3
+   ... target entry point will be at /__tebako_memfs__/local/ticker.rb
+   ... stripping the output
+----
+
+== Packaging a Gem
+
+The most common entity for packaging is a previously developed gem. Note that Tebako is an executable packager. This means that we can package
+a gem as an application but not as a library. Practically, it means that Tebako packages runs of the gem executables, which serve as the package's
+entry point.
+
+We will use the following gem specification (`gemfile.sample/tebako-table.gemspec`):
+
+[source,Ruby]
+----
+require_relative "lib/version"
+
+Gem::Specification.new do |s|
+  s.name        = "tebako-test"
+  s.version     = Test::VERSION
+  s.summary     = "A simple gem for Tebako testing"
+  s.authors     = ["Ribose"]
+  s.email       = ["open.source@ribose.com"]
+  s.files       = Dir.glob("lib/**/*") + Dir.glob("exe/**/*")
+  s.homepage    = "https://github.com/tamitebako"
+  s.license     = "Unlicense"
+  s.bindir      = "exe"
+  s.required_ruby_version = Gem::Requirement.new(">= 2.7.0")
+  s.add_dependency "text-table", "~> 1.2.4"
+  s.executables << "tebako-table-cli"
+end
+----
+
+Trivial Gemfile:
+
+[source,Ruby]
+----
+source "https://rubygems.org"
+gemspec
+----
+
+And three source files:
+
+1. `gemspec_and_gemfile.sample/exe/tebako-table-cli`:
+
+[source,Ruby]
+----
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+require "tebako-table"
+
+instance = Test::TebakoTable.new
+instance.run
+----
+
+2. `gemspec_and_gemfile.sample/lib/tebako-table.rb`:
+
+[source,Ruby]
+----
+require "text-table"
+require_relative "version"
+
+module Test
+  class TebakoTable
+    def msg
+      table = Text::Table.new
+      table.head = %w[A B]
+      table.rows = [%w[a1 b1]]
+      table.rows << %w[a2 b2]
+      table
+    end
+
+    def run
+      puts <<~MSG
+        Running packaged tebako-table gem version #{VERSION}.
+        You shall see a nice text table below.
+
+        #{msg}
+      MSG
+    end
+  end
+end
+----
+
+3. `gemspec_and_gemfile.sample/lib/version.rb`:
+
+[source,Ruby]
+----
+module Test
+  VERSION = "0.0.2"
+end
+----
+
+The `press` command does not change:
+
+[source,sh]
+----
+tebako press -r gemspec_and_gemfile.sample -e tebako-table-cli -o table.tebako
+----
+
+But now Tebako recognizes that it packages a gem and applies a different deployment scenario:
+
+[source]
+----
+-- Running init script
+   ... creating packaging environment at /Users/runner/.tebako/o/s
+-- Running deploy script
+   ... installing tebako-runtime gem
+   ... @ /Users/runner/.tebako/o/s/bin/gem install tebako-runtime --no-document --install-dir /Users/runner/.tebako/o/s/lib/ruby/gems/3.2.0
+   ... collecting gem from gemspec /Users/runner/work/tebako-samples/tebako-samples/tutorial/2_packaging_scenarios/gemspec_and_gemfile.sample/tebako-table.gemspec and Gemfile
+   ... @ /Users/runner/.tebako/o/s/bin/bundle config set --local build.ffi --disable-system-libffi
+   ... @ /Users/runner/.tebako/o/s/bin/bundle config set --local build.nokogiri --no-use-system-libraries
+   ... @ /Users/runner/.tebako/o/s/bin/bundle config set --local force_ruby_platform false
+   *** It may take a long time for a big project. It takes REALLY long time on Windows ***
+   ... @ /Users/runner/.tebako/o/s/bin/bundle install --jobs=3
+   ... @ /Users/runner/.tebako/o/s/bin/bundle exec /Users/runner/.tebako/o/s/bin/gem build
+         /Users/runner/work/tebako-samples/tebako-samples/tutorial/2_packaging_scenarios/gemspec_and_gemfile.sample/tebako-table.gemspec
+   ... installing /Users/runner/.tebako/o/r/tebako-test-0.0.2.gem
+   ... @ /Users/runner/.tebako/o/s/bin/gem install /Users/runner/.tebako/o/r/tebako-test-0.0.2.gem --no-document
+         --install-dir /Users/runner/.tebako/o/s/lib/ruby/gems/3.2.0 --bindir /Users/runner/.tebako/o/s/bin
+   ... target entry point will be at /__tebako_memfs__/bin/tebako-table-cli
+   ... stripping the output
+----
+
+Tebako uses the link:https://guides.rubygems.org/command-reference/#gem-install[`gem install` command] to place the application into its embedded filesystem.
+The configuration created during this process is defined by the gem specification (`gemspec`).
+For Tebako to process the `gemspec` correctly, it must define the link:https://guides.rubygems.org/specification-reference/#bindir[`bindir`]
+and the link:https://guides.rubygems.org/specification-reference/#executables[`executables`] within the `bindir`. According to the gemspec documentation:
+_“... you don’t specify the full path (as in bin/rake); all application-style files are expected to be found in bindir ...”_
+Tebako adheres to this convention by expecting the entry point to be listed as an executable and located in the `bindir` specified in the `gemspec.
+Tebako sets the `bindir` option of the `gem install` command to a path within its memory filesystem, such as `\__tebako_memfs__\bin`. This path is effectively the default `bindir` for `gem install` (typically, the folder where the Ruby executable resides). Notably, the gem specification does not indicate that the `bindir` option for `gem install` can be modified or restricted by the gem itself.
+
+== Packaging a Gem Without Bundling
+
+Tebako also supports gems defined without a Gemfile (not bundled). We can copy the previous example, specify dependencies in the gemspec, remove the Gemfile, and package it with Tebako:
+
+[source,sh]
+----
+tebako press -r gemspec.sample -e tebako-table-cli -o table.tebako
+----
+
+[source]
+----
+-- Running init script
+   ... creating packaging environment at /Users/runner/.tebako/o/s
+-- Running deploy script
+   ... installing tebako-runtime gem
+   ... @ /Users/runner/.tebako/o/s/bin/gem install tebako-runtime --no-document --install-dir /Users/runner/.tebako/o/s/lib/ruby/gems/3.2.0
+   ... collecting gem from gemspec /Users/runner/work/tebako-samples/tebako-samples/tutorial/2_packaging_scenarios/gemspec.sample/tebako-table.gemspec
+   ... @ /Users/runner/.tebako/o/s/bin/gem build /Users/runner/work/tebako-samples/tebako-samples/tutorial/2_packaging_scenarios/gemspec.sample/tebako-table.gemspec
+   ... installing /Users/runner/.tebako/o/r/tebako-test-0.0.2.gem
+   ... @ /Users/runner/.tebako/o/s/bin/gem install /Users/runner/.tebako/o/r/tebako-test-0.0.2.gem --no-document
+         --install-dir /Users/runner/.tebako/o/s/lib/ruby/gems/3.2.0 --bindir /Users/runner/.tebako/o/s/bin
+   ... target entry point will be at /__tebako_memfs__/bin/tebako-table-cli
+----
+
+This approach is faster but may fail for gems with native extensions since Tebako lacks sufficient control to configure them correctly.
+We primarily support this for backward compatibility.
+
+== Packaging a Built Gem
+
+Tebako can package one or several prebuilt `*.gem` files:
+
+[source,sh]
+----
+mkdir -p gem.sample
+pushd gemspec.sample
+gem build tebako-table.gemspec -o ../gem.sample/tebako-test-0.0.2.gem
+popd
+tebako press -r gem.sample -e tebako-table-cli -o table.tebako
+----
+
+The same limitations apply as in the previous option. This scenario may fail for gems with native extensions due to Tebako's limited control during configuration.
+It is supported primarily for backward compatibility.
+
+== Acknowledgements
+
+The samples provided above were inspired by the contributions of https://github.com/bradgessler[bradgessler].
+
+== Live Example
+
+You can find the complete code for this lesson in the `tutorial/2_dependencies` directory of the `tebako-samples` repository.
+The code runs on GitHub Actions via the `tutorial.yml` workflow.
