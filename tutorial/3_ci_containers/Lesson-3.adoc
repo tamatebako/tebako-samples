@@ -1,0 +1,92 @@
+= Tebako Tutorial - Lesson 3: Creating Linux Tebako Packages Using CI Containers
+
+In Lessons 1 and 2, we created Tebako packages in a macOS environment. However, Tebako packages are platform-dependent and can only run on the platform where they were built. In this lesson, we will create packages for GNU and musl Linux systems using Tebako CI containers.
+
+== Why Use Containers?
+
+Creating Tebako packages for Linux requires matching the target system's architecture and standard library implementation. For example:
+
+- **x86_64/aarch64 packages** must be built on **x86_64/aarch64 systems**, respectively.
+- Packages for **GNU/musl Linux** must be created in corresponding **GNU/musl environments**.
+
+Setting up Tebako across diverse Linux configurations can be challenging. To simplify this process, we provide **Docker containers** preconfigured with the Tebako executable packager. These containers are tested on specific Ubuntu and Alpine setups, ensuring compatibility and ease of use.
+
+Tebako containers support packaging for both GNU and musl target environments and include multi-architecture manifests for x86_64 (amd64) and aarch64 (arm64) systems.
+
+== Packaging for GNU Linux
+
+Let’s package the sample applications from Lessons 1 and 2 for GNU Linux using the Tebako CI container.
+
+[source,sh]
+----
+docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
+        tebako press -r /mnt/w/tutorial/1_hello_world/hello_world.sample -e hello_world.rb -o /mnt/w/hello_world --patchelf
+
+./hello_world
+ldd hello_world
+----
+
+[source,sh]
+----
+docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
+        tebako press -r /mnt/w/tutorial/2_packaging_scenarios/gemspec_and_gemfile.sample -e tebako-table-cli -o /mnt/w/table.tebako --patchelf
+
+./table.tebako
+----
+
+Note the `--patchelf` option. It is required to remove an obsolete dependency on a specific version of the `pthread` library. By eliminating this dependency, Tebako packages for GNU Linux become forward-compatible with distributions running GLIBC version 2.31 and above.
+
+.Minimum Versions of GLIBC Linux Distributions Supporting Tebako Packages
+[cols="3", options="header"]
+|===
+| Distribution | Minimal Supported Version | GLIBC Version
+| Ubuntu | 20.04 (Focal Fossa) | GLIBC 2.31
+| Debian | 11 (Bullseye) | GLIBC 2.31
+| Rocky Linux | 9 | GLIBC 2.34
+| Fedora | 33 | GLIBC 2.32
+| CentOS | 9 | GLIBC 2.34
+| Red Hat Enterprise Linux (RHEL) | 9 | GLIBC 2.34
+| Oracle Linux | 9 | GLIBC 2.34
+|===
+
+== Packaging for musl Linux
+
+Packaging for musl Linux requires the `tebako-alpine-3.17` container and no additional options:
+
+[source,sh]
+----
+docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-alpine-3.17:latest \
+        tebako press -r /mnt/w/tutorial/1_hello_world/hello_world.sample -e hello_world.rb -o /mnt/w/hello_world
+
+./hello_world
+ldd hello_world
+----
+
+[source,sh]
+----
+docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-alpine-3.17:latest \
+        tebako press -r /mnt/w/tutorial/2_packaging_scenarios/gemspec_and_gemfile.sample -e tebako-table-cli -o /mnt/w/table.tebako
+
+./table.tebako
+----
+
+== Packaging from Inside the Container
+
+You can also run the `tebako` command from inside the container. This is useful when you need to package multiple applications or run Tebako commands in a CI/CD pipeline. If you use a mounted host directory for packaging, the container's instance of `git` will not have access to it by default. To resolve this, you must alter the container's configuration by running the following command before packaging:
+
+[source,sh]
+----
+git config --global --add safe.directory <source>
+----
+
+However, to avoid this additional setup, we recommend packaging **from outside the container** instead of modifying the container's configuration as described above.
+
+Packaging from inside the container is primarily designed to support CI environments like GitHub Actions (GHA) or Cirrus CI. It provides a complete packaging environment that does not require any additional installations, making it ideal for automated workflows.
+
+== Acknowledgements
+
+The samples provided above were created with the contributions of https://github.com/bradgessler[bradgessler].
+
+== Live Example
+
+You can find the complete code for this lesson in the `tebako-samples` repository. The code runs on GitHub Actions via the `tutorial.yml` workflow.

@@ -46,7 +46,7 @@ jobs:
       run: |
         ./lesson-1
 
-      # Cannot run this sample since GH Actions does not allow such websocket connection to the outside world
+      # Cannot run this sample since GH Actions does not allow websocket connection to the outside world
 
     - name: Package 2_packaging_scenarios gemspec and gemfile sample
       run: |
@@ -79,3 +79,51 @@ jobs:
     - name: Run packaged 2_packaging_scenarios gems sample
       run: |
         ./table.tebako
+
+  lesson-3-A:
+    runs-on: ubuntu-24.04-arm
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Package 1_hello_world
+      run: |
+        docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
+        tebako press -r /mnt/w/tutorial/1_hello_world/hello_world.sample -e hello_world.rb -o /mnt/w/hello_world --patchelf
+
+    - name: Run packaged 1_hello_world application
+      run: |
+        ./hello_world
+        ldd hello_world
+
+    - name: Package 2_packaging_scenarios gemspec and gemfile sample
+      run: |
+        docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
+        tebako press -r /mnt/w/tutorial/2_packaging_scenarios/gemspec_and_gemfile.sample -e tebako-table-cli -o /mnt/w/table.tebako --patchelf
+
+    - name: Run packaged 2_packaging_scenarios gemspec and gemfile sample
+      run: |
+        ./table.tebako
+
+  lesson-3-B:
+    runs-on: ubuntu-24.04
+    container: ghcr.io/tamatebako/tebako-alpine-3.17
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Package 1_hello_world
+        run: |
+          tebako press -r tutorial/1_hello_world/hello_world.sample -e hello_world.rb -o hello_world
+      - name: Run packaged 1_hello_world application
+        run: |
+          ./hello_world
+          ldd hello_world
+
+      - name: Package 2_packaging_scenarios gemspec and gemfile sample
+        run: |
+          tebako press -r tutorial/2_packaging_scenarios/gemspec_and_gemfile.sample -e tebako-table-cli -o table.tebako --patchelf
+
+      - name: Run packaged 2_packaging_scenarios gemspec and gemfile sample
+        run: |
+          ./table.tebako
