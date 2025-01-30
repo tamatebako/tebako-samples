@@ -5,6 +5,8 @@ on:
     branches:  [ main ]
   pull_request:
   workflow_dispatch:
+  repository_dispatch:
+    types: [ 'tebako release' ]
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.job }}-${{ github.head_ref || github.ref_name }}'
