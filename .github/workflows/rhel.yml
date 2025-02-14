@@ -49,7 +49,7 @@ jobs:
         run: |
           docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
                          tebako press --root=/mnt/w/sinatra --entry-point=app.rb     \
-                         --output=/mnt/w/sinatra.tebako --Ruby=3.2.6 --patchelf
+                         --output=/mnt/w/sinatra.tebako --Ruby=3.3.7 --patchelf
 
       - name: Upload tebako test packages
         uses: actions/upload-artifact@v4
@@ -118,7 +118,7 @@ jobs:
         run: |
           docker run -v $PWD:/mnt/w -t ghcr.io/tamatebako/tebako-ubuntu-20.04:latest \
                          tebako press --root=/mnt/w/ror --entry-point=bin/rails     \
-                         --output=/mnt/w/rails.tebako --Ruby=3.2.6 --patchelf
+                         --output=/mnt/w/rails.tebako --Ruby=3.3.7 --patchelf
 
       - name: Upload tebako test packages
         uses: actions/upload-artifact@v4
