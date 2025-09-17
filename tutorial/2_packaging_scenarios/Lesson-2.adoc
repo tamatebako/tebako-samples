@@ -77,7 +77,7 @@ You can see this sequence in the Tebako console log:
 == Packaging a Gem
 
 The most common entity for packaging is a previously developed gem. Note that Tebako is an executable packager. This means that we can package
-a gem as an application but not as a library. Practically, it means that Tebako packages runs of the gem executables, which serve as the package's
+a gem as an application but not as a library. Practically, it means that Tebako package run the gem executable, which serve as the package's
 entry point.
 
 We will use the following gem specification (`gemfile.sample/tebako-table.gemspec`):
