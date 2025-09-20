@@ -192,7 +192,7 @@ Please refer to Sinatra sample comments above for more Tebako CI containers exam
 There is no configuration option to change where Rails expects the tmp folder to be.
 The location is hardcoded in multiple places within the Rails codebase, residing under the
 application root, and as a result, it gets included in the read-only Tebako memfs. Although
-patches have been proposed (e.g., https://github.com/rails/rails#39583), there is currently
+patches have been proposed (e.g., https://github.com/rails/rails/issues/39583), there is currently
 no way to change the paths for temporary files, caches, and sockets.
 
 To address this limitation in Rails, Tebako provides --tebako-mount option to mount a host folder
